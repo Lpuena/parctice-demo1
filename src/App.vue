@@ -25,13 +25,18 @@
 
     <div class="mid">
       <el-row class="marginBottom">
-        <el-button plain>添加</el-button>
+        <el-col :span="21">
+          <el-button plain >添加</el-button>
+        </el-col>
+        <el-col :span="3">
+          <el-input v-model="input" placeholder="请输入ID,回车进行搜索" @keydown.enter.native="searchById(input)"></el-input>
+        </el-col>
       </el-row>
       <div class="mid-content">
         <el-row>
           <el-col>
             <el-table
-              :data="tableData"
+              :data="tableData.slice((currentPage-1) * pageSize , currentPage * pageSize)"
               stripe
               style="width: 100%">
               <el-table-column
@@ -67,6 +72,17 @@
           </el-col>
         </el-row>
       </div>
+      <div class="block">
+        <!-- <span class="demonstration">显示总数</span> -->
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page.sync="currentPage"
+          :page-size="pageSize"
+          layout="total, prev, pager, next"
+          :total="this.tableData.length">
+        </el-pagination>
+      </div>
     </div>
 
   </div>
@@ -80,6 +96,9 @@ export default {
 
   data() {
     return {
+      input: '',
+      currentPage: 1,
+      pageSize: 10,
       formInline: {
         name: '',
         type: ''
@@ -88,14 +107,30 @@ export default {
       id: 1
     }
   },
+  computed: {
+    timeConersion() {
+      /* 时间戳转换 */
+      return function(item) {
+        const date = new Date(parseInt(item)) // 如果是10位，这里需要*1000，如果是13位则不需要*1000
+        const y = date.getFullYear()
+        let m = date.getMonth() + 1
+        m = m < 10 ? ('0' + m) : m
+        let d = date.getDate()
+        d = d < 10 ? ('0' + d) : d
+        return y + '-' + m + '-' + d
+      }
+    }
+  },
   methods: {
+    // 批量获取合同信息
     async getTableData() {
       const { data: res } = await this.$http.post('/purchase/offer/query.do', {})
       console.log(res)
       this.tableData = res.data
       this.changeType()
+      this.changeTime()
     },
-    // 遍历
+    // 遍历，将类型变成对应文字
     changeType() {
       this.tableData.forEach(x => {
         if (x.type === '1') {
@@ -109,6 +144,20 @@ export default {
         }
       })
     },
+    changeTime() {
+      this.tableData.forEach(x => {
+        x.signTime = this.timeConersion(x.signTime)
+      })
+    },
+    // 通过id来进行搜索
+    async searchById(id) {
+      const { data: res } = await this.$http.get('/purchase/offer/getById.do?id=' + id)
+      console.log(res)
+      this.input = ''
+      this.tableData = res.data
+      this.changeType()
+      this.changeTime()
+    },
     // async getTableData() {
     //   const { res } = await this.$http.get('/purchase/offer/getById.do?id=' + this.id)
     //   console.log(res)
@@ -118,6 +167,12 @@ export default {
     },
     deleteRow(index, rows) {
       rows.splice(index, 1)
+    },
+    handleSizeChange(val) {
+      console.log(`每页 ${val} 条`)
+    },
+    handleCurrentChange(val) {
+      console.log(`当前页: ${val}`)
     }
   }
 }
@@ -130,6 +185,8 @@ html,body {
 }
 .marginBottom {
   margin-bottom: 10px;
+  // display: flex;
+  // justify-content: space-between;
 }
 .app-container {
   margin-top: 10px;
