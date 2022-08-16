@@ -342,7 +342,7 @@ html,body {
   }
 
   .mid {
-    margin: 30px 20px;
+    margin: 20px 20px;
     .mid-content {
     border: 1px solid #dbdde0;
     border-radius: 4px;
